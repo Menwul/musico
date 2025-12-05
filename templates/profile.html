@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - SoundConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (!token || !userData) {
+            window.location.href = '/login';
+            throw new Error('Not authenticated');
+        }
+    </script>
+    
+    <nav class="navbar">
+        <a href="/" class="logo">
+            <i class="fas fa-music"></i>
+            <span>SoundConnect</span>
+        </a>
+        
+        <div class="nav-links">
+            <a href="/explore"><i class="fas fa-compass"></i> Explore</a>
+            <a href="/follow"><i class="fas fa-user-plus"></i> Connect</a>
+        <a href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+            <a href="/profile" class="active"><i class="fas fa-user"></i> Profile</a>
+        </div>
+        
+        <div class="auth-buttons">
+            <button class="btn btn-primary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Profile Header -->
+        <div class="card" style="text-align: center;">
+            <div style="position: relative; margin-bottom: 2rem;">
+                <!-- Profile Banner -->
+                <div style="height: 200px; background: linear-gradient(45deg, var(--primary), var(--secondary)); 
+                            border-radius: 15px; margin-bottom: -50px;"></div>
+                
+                <!-- Profile Picture with Upload -->
+                <div style="position: relative; display: inline-block;">
+                    <img id="profilePicture" 
+                         src="https://via.placeholder.com/150/8a2be2/ffffff?text=User" 
+                         alt="Profile"
+                         style="width: 150px; height: 150px; border-radius: 50%; border: 5px solid var(--dark-light); object-fit: cover;">
+                    <button onclick="document.getElementById('profilePicInput').click()" 
+                            style="position: absolute; bottom: 10px; right: 10px; background: var(--primary); 
+                                   color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                    <input type="file" id="profilePicInput" accept="image/*" style="display: none;" onchange="uploadProfilePicture(event)">
+                </div>
+            </div>
+            
+            <h1 id="profileName">Loading...</h1>
+            <p id="profileBio" style="color: var(--gray); max-width: 600px; margin: 0.5rem auto 1.5rem;"></p>
+            
+            <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 1.5rem;">
+                <div style="text-align: center;">
+                    <h3 id="tracksCount">0</h3>
+                    <p style="color: var(--gray);">Tracks</p>
+                </div>
+                <div style="text-align: center;">
+                    <h3 id="followersCount">0</h3>
+                    <p style="color: var(--gray);">Followers</p>
+                </div>
+                <div style="text-align: center;">
+                    <h3 id="followingCount">0</h3>
+                    <p style="color: var(--gray);">Following</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: center; gap: 1rem;">
+                <button class="btn btn-outline" onclick="editProfile()">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </button>
+                <button class="btn btn-outline" onclick="shareProfile()">
+                    <i class="fas fa-share-alt"></i> Share
+                </button>
+            </div>
+        </div>
+        
+        <!-- Profile Tabs -->
+        <div style="margin-top: 2rem;">
+            <div style="display: flex; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <button id="tabTracks" class="tab-btn active" onclick="switchTab('tracks')">
+                    <i class="fas fa-music"></i> Tracks
+                </button>
+                <button id="tabLikes" class="tab-btn" onclick="switchTab('likes')">
+                    <i class="fas fa-heart"></i> Likes
+                </button>
+                <button id="tabAbout" class="tab-btn" onclick="switchTab('about')">
+                    <i class="fas fa-info-circle"></i> About
+                </button>
+            </div>
+            
+            <!-- Tracks Tab -->
+            <div id="tabContentTracks" class="tab-content active">
+                <div style="margin-top: 1.5rem;">
+                    <div id="userTracksGrid" class="grid">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            <p>Loading tracks...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Likes Tab -->
+            <div id="tabContentLikes" class="tab-content">
+                <div id="likedTracksContent" style="text-align: center; padding: 3rem;">
+                    <i class="fas fa-heart" style="font-size: 3rem; color: var(--gray);"></i>
+                    <p style="margin-top: 1rem; color: var(--gray);">No liked tracks yet</p>
+                    <a href="/explore" class="btn btn-primary" style="margin-top: 1rem;">
+                        <i class="fas fa-compass"></i> Explore Tracks
+                    </a>
+                </div>
+            </div>
+            
+            <!-- About Tab -->
+            <div id="tabContentAbout" class="tab-content">
+                <div class="card" style="margin-top: 1.5rem;">
+                    <h3 style="margin-bottom: 1rem;">About Me</h3>
+                    <p id="aboutText" style="color: var(--gray);">Loading...</p>
+                    
+                    <div style="margin-top: 2rem;">
+                        <h4 style="margin-bottom: 1rem;">Details</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div>
+                                <p style="color: var(--gray);">Member Since</p>
+                                <p id="joinDate">Loading...</p>
+                            </div>
+                            <div>
+                                <p style="color: var(--gray);">Last Active</p>
+                                <p id="lastActive">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Edit Profile</h2>
+                <button class="close-modal" onclick="closeModal('editProfileModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="editProfileForm">
+                <div class="form-group">
+                    <label>Display Name</label>
+                    <input type="text" id="editDisplayName" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>Bio</label>
+                    <textarea id="editBio" class="form-control" rows="4" 
+                              placeholder="Tell everyone about yourself..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Location</label>
+                    <input type="text" id="editLocation" class="form-control" 
+                           placeholder="City, Country">
+                </div>
+                
+                <div class="form-group">
+                    <label>Website</label>
+                    <input type="url" id="editWebsite" class="form-control" 
+                           placeholder="https://example.com">
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        Save Changes
+                    </button>
+                    <button type="button" class="btn btn-outline" 
+                            onclick="closeModal('editProfileModal')">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .tab-btn {
+            padding: 1rem 2rem;
+            background: none;
+            border: none;
+            color: var(--gray);
+            font-weight: bold;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab-btn:hover {
+            color: var(--light);
+        }
+        
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        /* Like button styles */
+        .like-btn.liked {
+            background: var(--danger) !important;
+            color: white !important;
+        }
+    </style>
+
+    <script>
+        // API Base URL
+        const API_BASE = window.location.origin;
+        let currentUser = null;
+        let profileUserId = null;
+        let isOwnProfile = true;
+        
+        // Utility functions
+        function showNotification(message, type = 'info') {
+            alert(`${type}: ${message}`);
+        }
+        
+        function requireAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+        
+        // Profile picture upload
+        async function uploadProfilePicture(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const button = event.target.parentElement.querySelector('button');
+            const originalHTML = button?.innerHTML;
+            if (button) {
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                button.disabled = true;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const formData = new FormData();
+                formData.append('profile_pic', file);
+                
+                const response = await fetch(`${API_BASE}/api/users/upload-profile-pic`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to upload profile picture');
+                }
+                
+                const result = await response.json();
+                
+                // Update profile picture
+                document.getElementById('profilePicture').src = result.profile_pic;
+                
+                // Update current user in localStorage
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                currentUser.profile_pic = result.profile_pic;
+                localStorage.setItem('user', JSON.stringify(currentUser));
+                
+                showNotification('Profile picture updated successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error uploading profile picture:', error);
+                showNotification('Failed to upload profile picture', 'error');
+            } finally {
+                if (button) {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                }
+            }
+        }
+        
+        // Load profile
+        async function loadProfile() {
+            if (!requireAuth()) return;
+            
+            try {
+                currentUser = JSON.parse(localStorage.getItem('user'));
+                profileUserId = currentUser.id;
+                
+                // Check if viewing own profile or someone else's
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get('id');
+                
+                if (userId && userId != currentUser.id) {
+                    // Viewing someone else's profile
+                    isOwnProfile = false;
+                    profileUserId = userId;
+                    await loadUserProfile(userId);
+                } else {
+                    // Viewing own profile
+                    isOwnProfile = true;
+                    await loadOwnProfile();
+                }
+                
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showNotification('Failed to load profile', 'error');
+            }
+        }
+        
+        async function loadOwnProfile() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load profile');
+                }
+                
+                const user = await response.json();
+                updateProfileUI(user);
+                loadUserTracks(user.id);
+                
+            } catch (error) {
+                console.error('Error loading own profile:', error);
+                showNotification('Failed to load profile', 'error');
+            }
+        }
+        
+        async function loadUserProfile(userId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/users/${userId}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        showNotification('Profile not found', 'error');
+                        window.location.href = '/dashboard';
+                        return;
+                    }
+                    throw new Error('Failed to load profile');
+                }
+                
+                const user = await response.json();
+                updateProfileUI(user);
+                loadUserTracks(userId);
+                
+            } catch (error) {
+                console.error('Error loading user profile:', error);
+                showNotification('Failed to load profile', 'error');
+            }
+        }
+        
+        async function updateProfileUI(user) {
+            document.getElementById('profileName').textContent = user.display_name || user.username;
+            document.getElementById('profileBio').textContent = user.bio || 'No bio yet';
+            document.getElementById('tracksCount').textContent = user.tracks_count || 0;
+            document.getElementById('followersCount').textContent = user.followers_count || 0;
+            document.getElementById('followingCount').textContent = user.following_count || 0;
+            
+            if (user.profile_pic && user.profile_pic !== 'default.png') {
+                document.getElementById('profilePicture').src = user.profile_pic;
+            }
+            
+            // About tab
+            document.getElementById('aboutText').textContent = user.bio || 'This user hasn\'t written a bio yet.';
+            
+            if (user.created_at) {
+                document.getElementById('joinDate').textContent = new Date(user.created_at).toLocaleDateString();
+            }
+            
+            if (user.last_login) {
+                document.getElementById('lastActive').textContent = getTimeAgo(user.last_login);
+            } else {
+                document.getElementById('lastActive').textContent = 'Just now';
+            }
+        }
+        
+        async function loadUserTracks(userId) {
+            const tracksGrid = document.getElementById('userTracksGrid');
+            
+            try {
+                tracksGrid.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading tracks...</p>
+                    </div>
+                `;
+                
+                const response = await fetch(`${API_BASE}/api/users/${userId}/tracks?limit=12`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load tracks');
+                }
+                
+                const result = await response.json();
+                const tracks = result.tracks || [];
+                
+                if (tracks.length > 0) {
+                    tracksGrid.innerHTML = '';
+                    tracks.forEach((track, index) => {
+                        const trackCard = document.createElement('div');
+                        trackCard.className = 'card';
+                        trackCard.style.cursor = 'pointer';
+                        trackCard.onclick = () => viewTrack(track.id);
+                        trackCard.innerHTML = `
+                            <div style="position: relative;">
+                                <img src="${track.cover_art || 'https://via.placeholder.com/300x200/8a2be2/ffffff?text=No+Cover'}" 
+                                     alt="${track.title}" 
+                                     style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px;">
+                                <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
+                                     onclick="event.stopPropagation(); playTrack('${track.id}')">
+                                    <i class="fas fa-play" style="color: white;"></i>
+                                </div>
+                            </div>
+                            <div style="padding: 1rem;">
+                                <div style="font-weight: bold; margin-bottom: 0.5rem;">${track.title}</div>
+                                <div style="color: var(--gray); font-size: 0.9rem;">${track.artist?.display_name || track.artist?.username || 'Unknown Artist'}</div>
+                                <div style="display: flex; gap: 1rem; margin-top: 1rem; color: var(--gray);">
+                                    <span><i class="fas fa-play"></i> ${track.plays || 0}</span>
+                                    <span><i class="fas fa-heart"></i> ${track.likes_count || 0}</span>
+                                    <span><i class="fas fa-comment"></i> ${track.comments_count || 0}</span>
+                                </div>
+                                <div style="margin-top: 10px; display: flex; gap: 0.5rem;">
+                                    <button class="btn btn-outline btn-small like-btn" 
+                                            data-track-id="${track.id}"
+                                            onclick="event.stopPropagation(); likeTrack('${track.id}', this)">
+                                        <i class="fas fa-heart"></i> Like
+                                    </button>
+                                    <button class="btn btn-outline btn-small" 
+                                            onclick="event.stopPropagation(); viewTrack('${track.id}')">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                        tracksGrid.appendChild(trackCard);
+                        
+                        // Check if track is already liked
+                        checkTrackLikeStatus(track.id, trackCard.querySelector('.like-btn'));
+                    });
+                } else {
+                    tracksGrid.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                            <i class="fas fa-music" style="font-size: 2rem; color: var(--gray);"></i>
+                            <p style="margin-top: 1rem; color: var(--gray);">
+                                ${isOwnProfile ? 'You haven\'t uploaded any tracks yet.' : 'No tracks uploaded yet.'}
+                            </p>
+                            ${isOwnProfile ? `
+                                <a href="/upload" class="btn btn-primary" style="margin-top: 1rem;">
+                                    <i class="fas fa-upload"></i> Upload Your First Track
+                                </a>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading user tracks:', error);
+                tracksGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: var(--warning);"></i>
+                        <p>Failed to load tracks</p>
+                        <button class="btn btn-primary" onclick="loadUserTracks(profileUserId)" style="margin-top: 1rem;">
+                            <i class="fas fa-redo"></i> Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        async function loadLikedTracks(userId) {
+            const likedTracksContent = document.getElementById('likedTracksContent');
+            
+            try {
+                likedTracksContent.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading liked tracks...</p>
+                    </div>
+                `;
+                
+                const response = await fetch(`${API_BASE}/api/users/${userId}/likes?limit=12`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load liked tracks');
+                }
+                
+                const result = await response.json();
+                const tracks = result.tracks || [];
+                
+                if (tracks.length > 0) {
+                    let html = `
+                        <div style="margin-top: 1.5rem;">
+                            <h3>Liked Tracks (${result.total || 0})</h3>
+                            <div class="grid">
+                    `;
+                    
+                    tracks.forEach((track, index) => {
+                        html += `
+                            <div class="card" style="cursor: pointer;" onclick="viewTrack('${track.id}')">
+                                <div style="position: relative;">
+                                    <img src="${track.cover_art || 'https://via.placeholder.com/300x200/8a2be2/ffffff?text=No+Cover'}" 
+                                         alt="${track.title}" 
+                                         style="width: 100%; height: 200px; object-fit: cover; border-radius: 8px;">
+                                    <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
+                                         onclick="event.stopPropagation(); playTrack('${track.id}')">
+                                        <i class="fas fa-play" style="color: white;"></i>
+                                    </div>
+                                </div>
+                                <div style="padding: 1rem;">
+                                    <div style="font-weight: bold; margin-bottom: 0.5rem;">${track.title}</div>
+                                    <div style="color: var(--gray); font-size: 0.9rem;">${track.artist?.display_name || track.artist?.username || 'Unknown Artist'}</div>
+                                    <div style="display: flex; gap: 1rem; margin-top: 1rem; color: var(--gray);">
+                                        <span><i class="fas fa-play"></i> ${track.plays || 0}</span>
+                                        <span><i class="fas fa-heart"></i> ${track.likes_count || 0}</span>
+                                        <span><i class="fas fa-comment"></i> ${track.comments_count || 0}</span>
+                                    </div>
+                                    <div style="margin-top: 10px; display: flex; gap: 0.5rem;">
+                                        <button class="btn btn-outline btn-small like-btn liked" 
+                                                data-track-id="${track.id}"
+                                                onclick="event.stopPropagation(); likeTrack('${track.id}', this)">
+                                            <i class="fas fa-heart"></i> Liked
+                                        </button>
+                                        <button class="btn btn-outline btn-small" 
+                                                onclick="event.stopPropagation(); viewTrack('${track.id}')">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div></div>`;
+                    likedTracksContent.innerHTML = html;
+                } else {
+                    likedTracksContent.innerHTML = `
+                        <div style="text-align: center; padding: 3rem;">
+                            <i class="fas fa-heart" style="font-size: 3rem; color: var(--gray);"></i>
+                            <p style="margin-top: 1rem; color: var(--gray);">No liked tracks yet</p>
+                            <a href="/explore" class="btn btn-primary" style="margin-top: 1rem;">
+                                <i class="fas fa-compass"></i> Explore Tracks
+                            </a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading liked tracks:', error);
+                likedTracksContent.innerHTML = `
+                    <div style="text-align: center; padding: 3rem;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: var(--warning);"></i>
+                        <p>Failed to load liked tracks</p>
+                        <button class="btn btn-primary" onclick="loadLikedTracks(${userId})" style="margin-top: 1rem;">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        async function checkTrackLikeStatus(trackId, likeButton) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/tracks/${trackId}/check-like`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.liked) {
+                        likeButton.classList.add('liked');
+                        likeButton.innerHTML = '<i class="fas fa-heart"></i> Liked';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking like status:', error);
+            }
+        }
+        
+        async function likeTrack(trackId, button) {
+            const originalHTML = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            button.disabled = true;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/tracks/${trackId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to like track');
+                }
+                
+                const result = await response.json();
+                
+                // Update button state
+                if (result.action === 'liked') {
+                    button.classList.add('liked');
+                    button.innerHTML = '<i class="fas fa-heart"></i> Liked';
+                    showNotification('Track liked!', 'success');
+                } else {
+                    button.classList.remove('liked');
+                    button.innerHTML = '<i class="fas fa-heart"></i> Like';
+                    showNotification('Track unliked', 'info');
+                }
+                
+                // Update likes count in UI
+                const trackCard = button.closest('.card');
+                if (trackCard) {
+                    const likesSpan = trackCard.querySelector('div:nth-child(2) div:nth-child(2) span:nth-child(2)');
+                    if (likesSpan) {
+                        const currentLikes = parseInt(likesSpan.textContent.match(/\d+/)[0]) || 0;
+                        const newLikes = result.action === 'liked' ? currentLikes + 1 : currentLikes - 1;
+                        likesSpan.innerHTML = `<i class="fas fa-heart"></i> ${newLikes}`;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error liking track:', error);
+                showNotification('Failed to like track', 'error');
+                button.innerHTML = originalHTML;
+            } finally {
+                button.disabled = false;
+            }
+        }
+        
+        async function playTrack(trackId) {
+            try {
+                // Increment play count
+                await fetch(`${API_BASE}/api/tracks/${trackId}/play`, {
+                    method: 'POST'
+                });
+                
+                showNotification('Playing track...', 'info');
+                
+            } catch (error) {
+                console.error('Error playing track:', error);
+                showNotification('Failed to play track', 'error');
+            }
+        }
+        
+        function viewTrack(trackId) {
+            window.location.href = `/explore`;
+        }
+        
+        function getTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+            
+            if (diffMins < 60) {
+                return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`;
+            } else if (diffHours < 24) {
+                return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+            } else if (diffDays < 7) {
+                return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+        
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Activate selected tab
+            const tabId = `tab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+            const contentId = `tabContent${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+            
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById(contentId).classList.add('active');
+            
+            // Load liked tracks if on likes tab
+            if (tabName === 'likes') {
+                loadLikedTracks(profileUserId);
+            }
+        }
+        
+        function editProfile() {
+            if (!isOwnProfile) {
+                showNotification('You can only edit your own profile', 'warning');
+                return;
+            }
+            
+            const user = JSON.parse(localStorage.getItem('user'));
+            
+            document.getElementById('editDisplayName').value = user.display_name || user.username;
+            document.getElementById('editBio').value = user.bio || '';
+            
+            openModal('editProfileModal');
+        }
+        
+        async function updateProfile() {
+            try {
+                const data = {
+                    display_name: document.getElementById('editDisplayName').value.trim(),
+                    bio: document.getElementById('editBio').value.trim()
+                };
+                
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/users/update`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error('Failed to update profile');
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update local storage
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    // Update UI
+                    updateProfileUI(result.user);
+                    
+                    // Close modal
+                    closeModal('editProfileModal');
+                    
+                    showNotification('Profile updated successfully!', 'success');
+                }
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showNotification('Failed to update profile', 'error');
+            }
+        }
+        
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        function shareProfile() {
+            const profileUrl = window.location.href;
+            if (navigator.share) {
+                navigator.share({
+                    title: document.getElementById('profileName').textContent,
+                    text: 'Check out this profile on SoundConnect',
+                    url: profileUrl
+                });
+            } else {
+                navigator.clipboard.writeText(profileUrl);
+                showNotification('Profile link copied to clipboard!', 'success');
+            }
+        }
+        
+        // Update the form submission
+        document.getElementById('editProfileForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            updateProfile();
+        });
+        
+        // Load profile on page load
+        document.addEventListener('DOMContentLoaded', loadProfile);
+        
+        // Close modal when clicking outside
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

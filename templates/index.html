@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoundConnect - Music Social Platform</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="/" class="logo">
+            <i class="fas fa-music"></i>
+            <span>SoundConnect</span>
+        </a>
+        
+        <div class="nav-links">
+            <a href="/" class="active"><i class="fas fa-home"></i> Home</a>
+        </div>
+        
+        <div class="auth-buttons">
+            <a href="/login" class="btn btn-outline">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </a>
+            <a href="/register" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Sign Up
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="container">
+        <div class="hero" style="text-align: center; padding: 4rem 0;">
+            <h1 style="font-size: 3rem; margin-bottom: 1rem;">
+                Share Your Sound.<br>Connect Your World.
+            </h1>
+            <p style="font-size: 1.2rem; color: var(--gray); max-width: 600px; margin: 0 auto 2rem;">
+                The ultimate social platform for musicians and music lovers. 
+                Upload your tracks, connect with artists, and build your audience.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <a href="/register" class="btn btn-primary" style="padding: 1rem 2rem;">
+                    <i class="fas fa-rocket"></i> Get Started Free
+                </a>
+                <a href="/login" class="btn btn-outline" style="padding: 1rem 2rem;">
+                    <i class="fas fa-headphones"></i> Listen Now
+                </a>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="grid">
+            <div class="card">
+                <div style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                </div>
+                <h3>Upload & Share</h3>
+                <p>Upload your tracks in high quality. Share with followers or make them public.</p>
+            </div>
+            
+            <div class="card">
+                <div style="font-size: 2.5rem; color: var(--secondary); margin-bottom: 1rem;">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>Real-time Chat</h3>
+                <p>Connect with artists and fans through live chat and comments.</p>
+            </div>
+            
+            <div class="card">
+                <div style="font-size: 2.5rem; color: var(--warning); margin-bottom: 1rem;">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Track Analytics</h3>
+                <p>See plays, likes, and audience growth with detailed analytics.</p>
+            </div>
+            
+            <div class="card">
+                <div style="font-size: 2.5rem; color: var(--success); margin-bottom: 1rem;">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <h3>Monetize</h3>
+                <p>Earn from your music through tips, subscriptions, and ad revenue.</p>
+            </div>
+        </div>
+
+        <!-- Latest Tracks Preview -->
+        <div style="margin-top: 4rem;">
+            <h2 style="margin-bottom: 2rem;">Latest Music</h2>
+            <div id="latestTracks" class="grid">
+                <!-- Tracks will load here -->
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading music...</p>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="/login" class="btn btn-primary">
+                    <i class="fas fa-music"></i> Listen to All Music
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2025 SoundConnect. All rights reserved.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+            Made with <i class="fas fa-heart" style="color: var(--danger);"></i> for music lovers
+        </p>
+    </footer>
+
+    <script>
+        // Simple notification function
+        function showNotification(message, type = 'info') {
+            // Create a simple alert for now
+            alert(message);
+        }
+
+        // Load latest tracks
+        async function loadLatestTracks() {
+            const tracksContainer = document.getElementById('latestTracks');
+            
+            try {
+                const response = await fetch('/api/tracks?limit=6');
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load tracks');
+                }
+                
+                const result = await response.json();
+                const tracks = result.tracks || [];
+                
+                if (tracks.length > 0) {
+                    tracksContainer.innerHTML = '';
+                    
+                    tracks.forEach(track => {
+                        const trackCard = document.createElement('div');
+                        trackCard.className = 'track-card';
+                        trackCard.innerHTML = `
+                            <div style="position: relative;">
+                                <img src="${track.cover_art || 'https://via.placeholder.com/300x200/8a2be2/ffffff?text=No+Cover'}" 
+                                     alt="${track.title}" 
+                                     class="track-cover"
+                                     style="cursor: pointer;"
+                                     onclick="showLoginMessage()">
+                                <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer;"
+                                     onclick="showLoginMessage()">
+                                    <i class="fas fa-play" style="color: white;"></i>
+                                </div>
+                            </div>
+                            <div class="track-info">
+                                <div class="track-title">${track.title}</div>
+                                <div class="track-artist">${track.artist?.display_name || track.artist?.username || 'Unknown Artist'}</div>
+                                <div class="track-stats">
+                                    <span><i class="fas fa-play"></i> ${track.plays || 0}</span>
+                                    <span><i class="fas fa-heart"></i> ${track.likes_count || 0}</span>
+                                    <span><i class="fas fa-comment"></i> ${track.comments_count || 0}</span>
+                                </div>
+                            </div>
+                        `;
+                        tracksContainer.appendChild(trackCard);
+                    });
+                } else {
+                    tracksContainer.innerHTML = `
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                            <i class="fas fa-music" style="font-size: 3rem; color: var(--gray); margin-bottom: 1rem;"></i>
+                            <p>No tracks yet. Be the first to upload!</p>
+                            <a href="/register" class="btn btn-primary" style="margin-top: 1rem;">
+                                <i class="fas fa-user-plus"></i> Sign Up to Upload
+                            </a>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading tracks:', error);
+                tracksContainer.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--warning);"></i>
+                        <p>Failed to load tracks</p>
+                        <p style="color: var(--gray); font-size: 0.9rem;">${error.message}</p>
+                        <button class="btn btn-primary" onclick="loadLatestTracks()" style="margin-top: 1rem;">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Show login message when trying to play tracks
+        function showLoginMessage() {
+            alert('Please login to listen to music and access all features!');
+            window.location.href = '/login';
+        }
+        
+        // Load tracks on page load
+        document.addEventListener('DOMContentLoaded', loadLatestTracks);
+    </script>
+</body>
+</html>

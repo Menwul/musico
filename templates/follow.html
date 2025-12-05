@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect with Artists - SoundConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .profile-stats {
+            display: flex;
+            gap: 2rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: var(--dark-light);
+            border-radius: 10px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-top: 0.5rem;
+        }
+        
+        .follow-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+        
+        .follow-tab {
+            padding: 0.5rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .follow-tab:hover {
+            background: var(--dark-light);
+        }
+        
+        .follow-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .user-card {
+            background: var(--dark-light);
+            border-radius: 10px;
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .user-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .user-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+        }
+        
+        .user-info {
+            flex: 1;
+        }
+        
+        .user-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 0.25rem;
+        }
+        
+        .user-username {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .user-bio {
+            color: var(--gray);
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .user-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        
+        .user-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .follow-btn {
+            min-width: 100px;
+        }
+        
+        .follow-btn.following {
+            background: var(--success);
+            color: white;
+        }
+        
+        .follow-btn.following:hover {
+            background: var(--danger);
+        }
+        
+        .search-users {
+            margin-bottom: 2rem;
+        }
+        
+        .search-input-group {
+            position: relative;
+            max-width: 500px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 12px 20px 12px 45px;
+            background: var(--dark-light);
+            border: 1px solid var(--border-color);
+            border-radius: 25px;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--gray);
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .loading-spinner {
+            border: 3px solid var(--dark-light);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .user-card {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .user-info {
+                text-align: center;
+            }
+            
+            .user-stats {
+                justify-content: center;
+            }
+            
+            .profile-stats {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">
+            <i class="fas fa-music"></i>
+            <span>SoundConnect</span>
+        </a>
+        
+        <div class="nav-links">
+            <a href="/"><i class="fas fa-home"></i> Home</a>
+            <a href="/explore"><i class="fas fa-compass"></i> Explore</a>
+            <a href="/follow" class="active"><i class="fas fa-user-plus"></i> Connect</a>
+            <a href="/upload"><i class="fas fa-upload"></i> Upload</a>
+            <a href="/chat"><i class="fas fa-comments"></i> Chat</a>
+            <a href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        </div>
+        
+        <div class="auth-buttons">
+            <!-- Will be populated by app.js -->
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1>Connect with Artists</h1>
+            <p style="color: var(--gray); max-width: 600px; margin: 1rem auto;">
+                Discover and connect with talented musicians. Follow artists you love and build your network.
+            </p>
+        </div>
+
+        <!-- Current User Stats -->
+        <div id="userStats" style="display: none;">
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <div class="stat-number" id="currentFollowers">0</div>
+                    <div class="stat-label">Followers</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="currentFollowing">0</div>
+                    <div class="stat-label">Following</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="currentTracks">0</div>
+                    <div class="stat-label">Tracks</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search Users -->
+        <div class="search-users">
+            <div class="search-input-group">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" 
+                       id="searchUsersInput" 
+                       class="search-input" 
+                       placeholder="Search artists by name..."
+                       onkeyup="searchUsers()">
+            </div>
+        </div>
+
+        <!-- Follow Tabs -->
+        <div class="follow-tabs">
+            <button class="follow-tab active" onclick="switchTab('all')">
+                <i class="fas fa-users"></i> All Artists
+            </button>
+            <button class="follow-tab" onclick="switchTab('following')">
+                <i class="fas fa-user-check"></i> Following
+            </button>
+            <button class="follow-tab" onclick="switchTab('followers')">
+                <i class="fas fa-user-friends"></i> Followers
+            </button>
+        </div>
+
+        <!-- Users Grid -->
+        <div id="usersGrid" class="grid">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading artists...</p>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-icon">
+                <i class="fas fa-user-slash"></i>
+            </div>
+            <h3>No artists found</h3>
+            <p id="emptyMessage">Try adjusting your search or browse all artists</p>
+            <button class="btn btn-primary" onclick="switchTab('all')" style="margin-top: 1rem;">
+                <i class="fas fa-users"></i> Browse All Artists
+            </button>
+        </div>
+
+        <!-- Load More -->
+        <div style="text-align: center; margin-top: 3rem;">
+            <button id="loadMoreBtn" class="btn btn-primary" onclick="loadMoreUsers()" style="display: none;">
+                <i class="fas fa-sync-alt"></i> Load More
+            </button>
+        </div>
+    </div>
+
+<script>
+    // ========== GLOBALS ==========
+    let currentUser = null;
+    let currentTab = 'all';
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMoreUsers = true;
+    let searchQuery = '';
+    let followingUsers = new Set();
+
+    const usersGrid = document.getElementById('usersGrid');
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    const emptyState = document.getElementById('emptyState');
+    const emptyMessage = document.getElementById('emptyMessage');
+    const searchInput = document.getElementById('searchUsersInput');
+    const userStats = document.getElementById('userStats');
+
+    const API_BASE = window.location.origin;
+
+    // Auth check
+    if (!localStorage.getItem('token')) {
+        window.location.href = '/login';
+    }
+
+    // ========== UTILS ==========
+    function getHeaders() {
+        return {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+        };
+    }
+
+    function formatNumber(n) {
+        return Number(n || 0).toLocaleString();
+    }
+
+    function showToast(msg) {
+        alert(msg); // Replace with real toast later
+    }
+
+    // ========== GET CURRENT USER ==========
+    async function loadCurrentUser() {
+        try {
+            const res = await fetch(`${API_BASE}/api/users/me`, { headers: getHeaders() });
+            if (!res.ok) throw new Error();
+            const user = await res.json();
+
+            currentUser = user;
+
+            document.getElementById('currentFollowers').textContent = formatNumber(user.followers_count);
+            document.getElementById('currentFollowing').textContent = formatNumber(user.following_count);
+            document.getElementById('currentTracks').textContent = formatNumber(user.tracks_count);
+            userStats.style.display = 'block';
+
+            updateNavButtons();
+        } catch (e) {
+            console.error("Failed to load current user");
+        }
+    }
+
+    // ========== RENDER USER CARD ==========
+    function renderUsers(users, clear = false) {
+        if (clear) usersGrid.innerHTML = '';
+
+        users.forEach(user => {
+            const u = {
+                id: user.id,
+                username: user.username || 'unknown',
+                display_name: user.display_name || user.username || 'Artist',
+                profile_pic: user.profile_pic || `https://via.placeholder.com/100/8a2be2/ffffff?text=${(user.username || 'A')[0].toUpperCase()}`,
+                bio: user.bio || 'No bio yet',
+                tracks_count: user.tracks_count || 0,
+                followers_count: user.followers_count || 0,
+                is_following: user.is_following || followingUsers.has(user.id)
+            };
+
+            const card = document.createElement('div');
+            card.className = 'user-card';
+
+            card.innerHTML = `
+                <!-- Clickable Avatar -->
+                <img src="${u.profile_pic}" 
+                     alt="${u.display_name}" 
+                     class="user-avatar" 
+                     onclick="openProfile(${u.id})">
+
+                <div class="user-info">
+                    <!-- Clickable Name -->
+                    <div class="user-name" onclick="openProfile(${u.id})">${u.display_name}</div>
+                    <div class="user-username">@${u.username}</div>
+                    <div class="user-bio">${u.bio}</div>
+
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <i class="fas fa-music"></i>
+                            <span>${formatNumber(u.tracks_count)} tracks</span>
+                        </div>
+                        <div class="user-stat">
+                            <i class="fas fa-users"></i>
+                            <span>${formatNumber(u.followers_count)} followers</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Follow Button (stops click propagation) -->
+                <div>
+                    <button class="btn btn-primary follow-btn ${u.is_following ? 'following' : ''}"
+                            data-user-id="${u.id}"
+                            onclick="event.stopPropagation(); toggleFollow(${u.id}, this)"
+                            ${u.id === currentUser?.id ? 'disabled style="opacity:0.6"' : ''}>
+                        ${u.is_following 
+                            ? '<i class="fas fa-user-check"></i> Following' 
+                            : '<i class="fas fa-user-plus"></i> Follow'}
+                    </button>
+                </div>
+            `;
+
+            // Make entire card clickable EXCEPT the follow button
+            card.addEventListener('click', () => openProfile(u.id));
+
+            // Apply hover "Unfollow" effect
+            const btn = card.querySelector('.follow-btn');
+            if (u.is_following && u.id !== currentUser?.id) {
+                applyHoverEffect(btn);
+            }
+
+            usersGrid.appendChild(card);
+        });
+    }
+
+    // Hover "Unfollow" effect
+    function applyHoverEffect(btn) {
+        const normal = '<i class="fas fa-user-check"></i> Following';
+        const hover = '<i class="fas fa-user-minus"></i> Unfollow';
+
+        btn.dataset.normal = normal;
+        btn.dataset.hover = hover;
+
+        btn.addEventListener('mouseenter', () => {
+            if (btn.classList.contains('following') && !btn.disabled) {
+                btn.innerHTML = hover;
+                btn.style.background = 'var(--danger)';
+            }
+        });
+
+        btn.addEventListener('mouseleave', () => {
+            if (btn.classList.contains('following') && !btn.disabled) {
+                btn.innerHTML = normal;
+                btn.style.background = '';
+            }
+        });
+    }
+
+    // ========== TOGGLE FOLLOW ==========
+    async function toggleFollow(userId, button) {
+        if (!currentUser || button.disabled) return;
+
+        const wasFollowing = button.classList.contains('following');
+        const originalHTML = button.innerHTML;
+
+        button.disabled = true;
+        button.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${wasFollowing ? 'Unfollowing...' : 'Following...'}`;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/users/${userId}/follow`, {
+                method: 'POST',
+                headers: getHeaders()
+            });
+
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+
+            if (data.action === 'followed') {
+                button.innerHTML = '<i class="fas fa-user-check"></i> Following';
+                button.classList.add('following');
+                followingUsers.add(userId);
+                updateFollowingCount(+1);
+                updateAllFollowerCounts(userId, +1);
+                applyHoverEffect(button);
+                showToast('Now following!');
+            } else {
+                button.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
+                button.classList.remove('following');
+                followingUsers.delete(userId);
+                updateFollowingCount(-1);
+                updateAllFollowerCounts(userId, -1);
+                button.onmouseenter = button.onmouseleave = null;
+                showToast('Unfollowed');
+
+                if (currentTab === 'following') {
+                    const card = button.closest('.user-card');
+                    card.style.opacity = '0.4';
+                    setTimeout(() => loadUsers(1, true), 600);
+                }
+            }
+        } catch (e) {
+            button.innerHTML = originalHTML;
+            showToast('Connection failed');
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    function updateFollowingCount(change) {
+        const el = document.getElementById('currentFollowing');
+        const current = parseInt(el.textContent.replace(/,/g, '')) || 0;
+        el.textContent = formatNumber(current + change);
+    }
+
+    function updateAllFollowerCounts(userId, change) {
+        document.querySelectorAll(`.follow-btn[data-user-id="${userId}"]`).forEach(btn => {
+            const card = btn.closest('.user-card');
+            const span = card.querySelector('.user-stat:nth-child(2) span');
+            if (span && span.textContent.includes('follower')) {
+                const num = parseInt(span.textContent.replace(/[^\d]/g, '')) || 0;
+                span.textContent = `${formatNumber(num + change)} followers`;
+            }
+        });
+    }
+
+    // ========== OPEN PROFILE ==========
+    function openProfile(userId) {
+        window.location.href = `/api/artists/<int:artist_id=${userId}`;
+    }
+
+    // ========== LOAD USERS ==========
+    async function loadUsers(page = 1, clear = true) {
+        if (isLoading) return;
+        isLoading = true;
+
+        if (clear) {
+            usersGrid.innerHTML = `<div class="loading"><div class="loading-spinner"></div><p>Loading...</p></div>`;
+            emptyState.style.display = 'none';
+        }
+
+        try {
+            let url;
+            if (currentTab === 'all') {
+                url = `${API_BASE}/api/chat/users`;
+            } else if (currentTab === 'following') {
+                url = `${API_BASE}/api/users/${currentUser.id}/following?page=${page}&limit=12`;
+            } else if (currentTab === 'followers') {
+                url = `${API_BASE}/api/users/${currentUser.id}/followers?page=${page}&limit=12`;
+            }
+
+            const res = await fetch(url, { headers: getHeaders() });
+            if (!res.ok) throw new Error();
+
+            const data = await res.json();
+            let users = data.users || data.following || data.followers || [];
+
+            // Ensure stats exist
+            users = users.map(u => ({
+                ...u,
+                tracks_count: u.tracks_count || 0,
+                followers_count: u.followers_count || 0
+            }));
+
+            // Search filter
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                users = users.filter(u =>
+                    (u.username?.toLowerCase().includes(q)) ||
+                    (u.display_name?.toLowerCase().includes(q))
+                );
+            }
+
+            if (users.length) {
+                renderUsers(users, clear);
+                hasMoreUsers = (currentTab !== 'all') && users.length === 12;
+                loadMoreBtn.style.display = hasMoreUsers ? 'inline-block' : 'none';
+            } else {
+                if (clear) {
+                    usersGrid.innerHTML = '';
+                    emptyState.style.display = 'block';
+                    emptyMessage.textContent = searchQuery
+                        ? `No results for "${searchQuery}"`
+                        : currentTab === 'following' ? 'Not following anyone'
+                        : currentTab === 'followers' ? 'No followers yet'
+                        : 'No artists found';
+                }
+                loadMoreBtn.style.display = 'none';
+            }
+        } catch (e) {
+            usersGrid.innerHTML = `<div style="text-align:center;padding:3rem;color:var(--gray)">Failed to load</div>`;
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    // ========== TABS & SEARCH ==========
+    function switchTab(tab) {
+        if (currentTab === tab || isLoading) return;
+        currentTab = tab;
+        searchQuery = '';
+        searchInput.value = '';
+        document.querySelectorAll('.follow-tab').forEach(b => b.classList.remove('active'));
+        document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+        loadUsers(1, true);
+    }
+
+    function searchUsers() {
+        searchQuery = searchInput.value.trim();
+        clearTimeout(window.searchTimer);
+        window.searchTimer = setTimeout(() => loadUsers(1, true), 300);
+    }
+
+    function loadMoreUsers() {
+        if (hasMoreUsers && !isLoading) {
+            currentPage++;
+            loadUsers(currentPage, false);
+        }
+    }
+
+    function updateNavButtons() {
+        const el = document.querySelector('.auth-buttons');
+        if (currentUser) {
+            el.innerHTML = `
+                <div style="display:flex;gap:1rem;align-items:center;">
+                    <a href="/profile" class="btn btn-outline btn-small">
+                        <i class="fas fa-user"></i> ${currentUser.display_name || currentUser.username}
+                    </a>
+                    <a href="/logout" class="btn btn-primary btn-small">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            `;
+        }
+    }
+
+    // ========== INIT ==========
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadCurrentUser();
+        await loadUsers(1, true);
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artist Profile - SoundConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .profile-header {
+            background: linear-gradient(135deg, rgba(138, 43, 226, 0.1) 0%, rgba(74, 0, 224, 0.2) 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('https://images.unsplash.com/photo-1511379938547-c1f69419868d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80') center/cover;
+            opacity: 0.1;
+            z-index: 0;
+        }
+        
+        .profile-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        
+        .profile-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid var(--primary);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .profile-info {
+            flex: 1;
+        }
+        
+        .profile-name {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 0.5rem;
+        }
+        
+        .profile-username {
+            font-size: 1.2rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+        }
+        
+        .profile-bio {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+        }
+        
+        .profile-stats {
+            display: flex;
+            gap: 3rem;
+            margin: 2rem 0;
+        }
+        
+        .profile-stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0.5rem;
+        }
+        
+        .profile-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .tracks-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+        
+        .tracks-tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        
+        .tracks-tab:hover {
+            background: var(--dark-light);
+        }
+        
+        .tracks-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .track-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .track-card {
+            background: var(--dark-light);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .track-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        
+        .track-cover {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .track-info {
+            padding: 1.5rem;
+        }
+        
+        .track-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .track-description {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .track-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+        }
+        
+        .track-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--gray);
+        }
+        
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+        }
+        
+        .loading-spinner {
+            border: 3px solid var(--dark-light);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .followers-section, .following-section {
+            display: none;
+        }
+        
+        .follow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .follow-card {
+            background: var(--dark-light);
+            border-radius: 10px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .follow-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .follow-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .follow-info {
+            flex: 1;
+        }
+        
+        .follow-name {
+            font-weight: bold;
+            color: white;
+            margin-bottom: 0.25rem;
+        }
+        
+        .follow-username {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .profile-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .profile-avatar {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .profile-name {
+                font-size: 2rem;
+            }
+            
+            .profile-stats {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            .track-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .follow-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">
+            <i class="fas fa-music"></i>
+            <span>SoundConnect</span>
+        </a>
+        
+        <div class="nav-links">
+            <a href="/"><i class="fas fa-home"></i> Home</a>
+            <a href="/explore"><i class="fas fa-compass"></i> Explore</a>
+            <a href="/follow"><i class="fas fa-user-plus"></i> Connect</a>
+            <a href="/upload"><i class="fas fa-upload"></i> Upload</a>
+            <a href="/chat"><i class="fas fa-comments"></i> Chat</a>
+            <a href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        </div>
+        
+        <div class="auth-buttons" id="authButtons">
+            <!-- Will be populated by JavaScript -->
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading">
+            <div class="loading-spinner"></div>
+            <p>Loading artist profile...</p>
+        </div>
+
+        <!-- Profile Header -->
+        <div id="profileHeader" style="display: none;">
+            <div class="profile-header">
+                <div class="profile-background"></div>
+                <div class="profile-content">
+                    <img id="artistAvatar" src="" alt="Artist" class="profile-avatar">
+                    <div class="profile-info">
+                        <h1 id="artistName" class="profile-name"></h1>
+                        <p id="artistUsername" class="profile-username"></p>
+                        <p id="artistBio" class="profile-bio"></p>
+                        <div class="profile-actions">
+                            <button id="followButton" class="btn btn-primary" onclick="toggleFollow()">
+                                <i class="fas fa-user-plus"></i> Follow
+                            </button>
+                            <button class="btn btn-outline" onclick="sendMessage()">
+                                <i class="fas fa-envelope"></i> Message
+                            </button>
+                            <button class="btn btn-outline" onclick="shareProfile()">
+                                <i class="fas fa-share"></i> Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="profile-stats">
+                <div class="profile-stat">
+                    <div class="stat-number" id="tracksCount">0</div>
+                    <div class="stat-label">Tracks</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="stat-number" id="followersCount">0</div>
+                    <div class="stat-label">Followers</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="stat-number" id="followingCount">0</div>
+                    <div class="stat-label">Following</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="stat-number" id="totalPlays">0</div>
+                    <div class="stat-label">Total Plays</div>
+                </div>
+                <div class="profile-stat">
+                    <div class="stat-number" id="totalLikes">0</div>
+                    <div class="stat-label">Likes</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tracks-tabs">
+                <button class="tracks-tab active" onclick="switchTab('tracks')">
+                    <i class="fas fa-music"></i> Tracks
+                </button>
+                <button class="tracks-tab" onclick="switchTab('top')">
+                    <i class="fas fa-fire"></i> Top Tracks
+                </button>
+                <button class="tracks-tab" onclick="switchTab('followers')">
+                    <i class="fas fa-users"></i> Followers
+                </button>
+                <button class="tracks-tab" onclick="switchTab('following')">
+                    <i class="fas fa-user-check"></i> Following
+                </button>
+            </div>
+
+            <!-- Tracks Section -->
+            <div id="tracksSection">
+                <div id="tracksGrid" class="track-grid">
+                    <!-- Tracks will be loaded here -->
+                </div>
+                <div id="tracksEmpty" class="empty-state" style="display: none;">
+                    <div class="empty-icon">
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <h3>No tracks yet</h3>
+                    <p>This artist hasn't uploaded any tracks</p>
+                </div>
+            </div>
+
+            <!-- Top Tracks Section -->
+            <div id="topTracksSection" class="tracks-section" style="display: none;">
+                <div id="topTracksGrid" class="track-grid">
+                    <!-- Top tracks will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Followers Section -->
+            <div id="followersSection" class="followers-section" style="display: none;">
+                <div id="followersGrid" class="follow-grid">
+                    <!-- Followers will be loaded here -->
+                </div>
+                <div id="followersEmpty" class="empty-state" style="display: none;">
+                    <div class="empty-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h3>No followers yet</h3>
+                    <p>Be the first to follow this artist!</p>
+                </div>
+            </div>
+
+            <!-- Following Section -->
+            <div id="followingSection" class="following-section" style="display: none;">
+                <div id="followingGrid" class="follow-grid">
+                    <!-- Following will be loaded here -->
+                </div>
+                <div id="followingEmpty" class="empty-state" style="display: none;">
+                    <div class="empty-icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <h3>Not following anyone</h3>
+                    <p>This artist isn't following anyone yet</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="empty-state" style="display: none;">
+            <div class="empty-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>Artist Not Found</h3>
+            <p>The artist you're looking for doesn't exist or has been removed.</p>
+            <button class="btn btn-primary" onclick="window.location.href='/explore'" style="margin-top: 1rem;">
+                <i class="fas fa-compass"></i> Explore Artists
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // ========== GLOBALS ==========
+        let currentUser = null;
+        let currentArtist = null;
+        let currentTab = 'tracks';
+        let currentPage = 1;
+        const tracksPerPage = 12;
+
+        const API_BASE = window.location.origin;
+
+        // ========== UTILS ==========
+        function getHeaders() {
+            const token = localStorage.getItem('token');
+            return token ? {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            } : {};
+        }
+
+        function formatNumber(n) {
+            if (n >= 1000000) {
+                return (n / 1000000).toFixed(1) + 'M';
+            } else if (n >= 1000) {
+                return (n / 1000).toFixed(1) + 'K';
+            }
+            return n.toLocaleString();
+        }
+
+        function showToast(message, type = 'info') {
+            // Simple alert for now - can be replaced with a proper toast library
+            alert(message);
+        }
+
+        function getUrlParam(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // ========== LOAD ARTIST PROFILE ==========
+        async function loadArtistProfile() {
+            const artistId = getUrlParam('user_id');
+            if (!artistId) {
+                showError('No artist specified');
+                return;
+            }
+
+            try {
+                // Load artist profile with stats
+                const res = await fetch(`${API_BASE}/api/artists/${artistId}/profile`, {
+                    headers: getHeaders()
+                });
+
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        showError('Artist not found');
+                    } else {
+                        throw new Error('Failed to load profile');
+                    }
+                    return;
+                }
+
+                const data = await res.json();
+                currentArtist = data.artist;
+
+                // Update UI
+                updateProfileUI();
+                loadCurrentTab();
+
+                // Show profile content
+                document.getElementById('loadingState').style.display = 'none';
+                document.getElementById('profileHeader').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading artist profile:', error);
+                showError('Failed to load artist profile');
+            }
+        }
+
+        function updateProfileUI() {
+            if (!currentArtist) return;
+
+            // Update basic info
+            document.getElementById('artistName').textContent = currentArtist.display_name;
+            document.getElementById('artistUsername').textContent = '@' + currentArtist.username;
+            document.getElementById('artistBio').textContent = currentArtist.bio || 'No bio available';
+            document.getElementById('artistAvatar').src = currentArtist.profile_pic || 
+                `https://via.placeholder.com/150/8a2be2/ffffff?text=${currentArtist.username[0].toUpperCase()}`;
+
+            // Update stats
+            document.getElementById('tracksCount').textContent = formatNumber(currentArtist.tracks_count);
+            document.getElementById('followersCount').textContent = formatNumber(currentArtist.followers_count);
+            document.getElementById('followingCount').textContent = formatNumber(currentArtist.following_count);
+            document.getElementById('totalPlays').textContent = formatNumber(currentArtist.total_plays);
+            document.getElementById('totalLikes').textContent = formatNumber(currentArtist.total_likes);
+
+            // Update follow button
+            updateFollowButton();
+
+            // Update page title
+            document.title = `${currentArtist.display_name} - SoundConnect`;
+        }
+
+        function updateFollowButton() {
+            const button = document.getElementById('followButton');
+            if (!button) return;
+
+            if (!currentUser || currentUser.id === currentArtist.id) {
+                button.style.display = 'none';
+                return;
+            }
+
+            button.style.display = 'inline-block';
+            
+            if (currentArtist.is_following) {
+                button.innerHTML = '<i class="fas fa-user-check"></i> Following';
+                button.classList.add('following');
+                button.classList.remove('btn-primary');
+                button.classList.add('btn-outline');
+                
+                // Add hover effect for unfollow
+                button.onmouseenter = () => {
+                    button.innerHTML = '<i class="fas fa-user-minus"></i> Unfollow';
+                    button.classList.remove('btn-outline');
+                    button.classList.add('btn-danger');
+                };
+                
+                button.onmouseleave = () => {
+                    button.innerHTML = '<i class="fas fa-user-check"></i> Following';
+                    button.classList.remove('btn-danger');
+                    button.classList.add('btn-outline');
+                };
+            } else {
+                button.innerHTML = '<i class="fas fa-user-plus"></i> Follow';
+                button.classList.remove('following', 'btn-outline', 'btn-danger');
+                button.classList.add('btn-primary');
+                
+                // Remove hover effects
+                button.onmouseenter = null;
+                button.onmouseleave = null;
+            }
+        }
+
+        // ========== TOGGLE FOLLOW ==========
+        async function toggleFollow() {
+            if (!currentUser || !currentArtist) return;
+
+            const button = document.getElementById('followButton');
+            if (button.disabled) return;
+
+            const wasFollowing = currentArtist.is_following;
+            const originalText = button.innerHTML;
+
+            button.disabled = true;
+            button.innerHTML = wasFollowing 
+                ? '<i class="fas fa-spinner fa-spin"></i> Unfollowing...'
+                : '<i class="fas fa-spinner fa-spin"></i> Following...';
+
+            try {
+                const res = await fetch(`${API_BASE}/api/users/${currentArtist.id}/follow`, {
+                    method: 'POST',
+                    headers: getHeaders()
+                });
+
+                if (!res.ok) throw new Error();
+
+                const data = await res.json();
+
+                // Update artist data
+                currentArtist.is_following = !wasFollowing;
+                currentArtist.followers_count = data.followers_count;
+
+                // Update UI
+                document.getElementById('followersCount').textContent = formatNumber(data.followers_count);
+                updateFollowButton();
+
+                showToast(wasFollowing ? 'Unfollowed successfully' : 'Now following!');
+
+            } catch (error) {
+                console.error('Error toggling follow:', error);
+                showToast('Failed to update follow status', 'error');
+                button.innerHTML = originalText;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        // ========== LOAD CURRENT TAB ==========
+        async function loadCurrentTab() {
+            switch (currentTab) {
+                case 'tracks':
+                    await loadTracks();
+                    break;
+                case 'top':
+                    await loadTopTracks();
+                    break;
+                case 'followers':
+                    await loadFollowers();
+                    break;
+                case 'following':
+                    await loadFollowing();
+                    break;
+            }
+        }
+
+        async function loadTracks() {
+            try {
+                const res = await fetch(`${API_BASE}/api/users/${currentArtist.id}/tracks?page=${currentPage}&limit=${tracksPerPage}`);
+                if (!res.ok) throw new Error();
+
+                const data = await res.json();
+                displayTracks(data.tracks, 'tracksGrid', data.tracks.length === 0);
+                
+            } catch (error) {
+                console.error('Error loading tracks:', error);
+                document.getElementById('tracksEmpty').style.display = 'block';
+            }
+        }
+
+        async function loadTopTracks() {
+            if (currentArtist.top_tracks && currentArtist.top_tracks.length > 0) {
+                displayTracks(currentArtist.top_tracks, 'topTracksGrid', false);
+            } else {
+                document.getElementById('topTracksGrid').innerHTML = '<div class="empty-state">No top tracks available</div>';
+            }
+        }
+
+        async function loadFollowers() {
+            try {
+                const res = await fetch(`${API_BASE}/api/users/${currentArtist.id}/followers`);
+                if (!res.ok) throw new Error();
+
+                const data = await res.json();
+                displayFollowers(data.followers, 'followersGrid', 'followersEmpty');
+                
+            } catch (error) {
+                console.error('Error loading followers:', error);
+                document.getElementById('followersEmpty').style.display = 'block';
+            }
+        }
+
+        async function loadFollowing() {
+            try {
+                const res = await fetch(`${API_BASE}/api/users/${currentArtist.id}/following`);
+                if (!res.ok) throw new Error();
+
+                const data = await res.json();
+                displayFollowers(data.following, 'followingGrid', 'followingEmpty');
+                
+            } catch (error) {
+                console.error('Error loading following:', error);
+                document.getElementById('followingEmpty').style.display = 'block';
+            }
+        }
+
+        function displayTracks(tracks, containerId, showEmpty) {
+            const container = document.getElementById(containerId);
+            const emptyState = document.getElementById(containerId.replace('Grid', 'Empty'));
+
+            if (!tracks || tracks.length === 0) {
+                container.innerHTML = '';
+                if (showEmpty && emptyState) {
+                    emptyState.style.display = 'block';
+                }
+                return;
+            }
+
+            if (emptyState) emptyState.style.display = 'none';
+
+            container.innerHTML = tracks.map(track => `
+                <div class="track-card" onclick="playTrack(${track.id})">
+                    <img src="${track.cover_art || 'https://via.placeholder.com/300/8a2be2/ffffff?text=🎵'}" 
+                         alt="${track.title}" 
+                         class="track-cover">
+                    <div class="track-info">
+                        <h3 class="track-title">${track.title}</h3>
+                        <p class="track-description">${track.description || 'No description'}</p>
+                        <div class="track-stats">
+                            <div class="track-stat">
+                                <i class="fas fa-play"></i>
+                                <span>${formatNumber(track.plays || 0)}</span>
+                            </div>
+                            <div class="track-stat">
+                                <i class="fas fa-heart"></i>
+                                <span>${formatNumber(track.likes_count || 0)}</span>
+                            </div>
+                            <div class="track-stat">
+                                <i class="fas fa-comment"></i>
+                                <span>${formatNumber(track.comments_count || 0)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayFollowers(users, containerId, emptyStateId) {
+            const container = document.getElementById(containerId);
+            const emptyState = document.getElementById(emptyStateId);
+
+            if (!users || users.length === 0) {
+                container.innerHTML = '';
+                if (emptyState) emptyState.style.display = 'block';
+                return;
+            }
+
+            if (emptyState) emptyState.style.display = 'none';
+
+            container.innerHTML = users.map(user => `
+                <div class="follow-card" onclick="viewProfile(${user.id})">
+                    <img src="${user.profile_pic || `https://via.placeholder.com/50/8a2be2/ffffff?text=${user.username[0].toUpperCase()}`}" 
+                         alt="${user.username}" 
+                         class="follow-avatar">
+                    <div class="follow-info">
+                        <div class="follow-name">${user.display_name || user.username}</div>
+                        <div class="follow-username">@${user.username}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ========== TAB SWITCHING ==========
+        function switchTab(tab) {
+            if (currentTab === tab) return;
+
+            // Update active tab button
+            document.querySelectorAll('.tracks-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Hide all sections
+            document.getElementById('tracksSection').style.display = 'none';
+            document.getElementById('topTracksSection').style.display = 'none';
+            document.getElementById('followersSection').style.display = 'none';
+            document.getElementById('followingSection').style.display = 'none';
+
+            // Show selected section
+            currentTab = tab;
+            switch (tab) {
+                case 'tracks':
+                    document.getElementById('tracksSection').style.display = 'block';
+                    loadTracks();
+                    break;
+                case 'top':
+                    document.getElementById('topTracksSection').style.display = 'block';
+                    loadTopTracks();
+                    break;
+                case 'followers':
+                    document.getElementById('followersSection').style.display = 'block';
+                    loadFollowers();
+                    break;
+                case 'following':
+                    document.getElementById('followingSection').style.display = 'block';
+                    loadFollowing();
+                    break;
+            }
+        }
+
+        // ========== HELPER FUNCTIONS ==========
+        function playTrack(trackId) {
+            window.location.href = `/track/${trackId}`;
+        }
+
+        function viewProfile(userId) {
+            if (userId === currentArtist.id) return;
+            window.location.href = `/profile?user_id=${userId}`;
+        }
+
+        function sendMessage() {
+            if (!currentUser) {
+                showToast('Please login to send messages', 'error');
+                return;
+            }
+            window.location.href = `/chat?user=${currentArtist.id}`;
+        }
+
+        function shareProfile() {
+            const url = window.location.href;
+            if (navigator.share) {
+                navigator.share({
+                    title: `${currentArtist.display_name} on SoundConnect`,
+                    text: `Check out ${currentArtist.display_name}'s profile on SoundConnect`,
+                    url: url
+                });
+            } else {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('Profile link copied to clipboard!');
+                });
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('errorState').style.display = 'block';
+            document.getElementById('errorState').querySelector('h3').textContent = message;
+        }
+
+        // ========== LOAD CURRENT USER ==========
+        async function loadCurrentUser() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                updateNavButtons();
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_BASE}/api/users/me`, {
+                    headers: getHeaders()
+                });
+
+                if (res.ok) {
+                    currentUser = await res.json();
+                }
+            } catch (error) {
+                console.error('Error loading current user:', error);
+            }
+
+            updateNavButtons();
+        }
+
+        function updateNavButtons() {
+            const container = document.getElementById('authButtons');
+            if (!container) return;
+
+            if (currentUser) {
+                container.innerHTML = `
+                    <div style="display:flex;gap:1rem;align-items:center;">
+                        <a href="/profile?user_id=${currentUser.id}" class="btn btn-outline btn-small">
+                            <i class="fas fa-user"></i> ${currentUser.display_name || currentUser.username}
+                        </a>
+                        <a href="/logout" class="btn btn-primary btn-small">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div style="display:flex;gap:0.5rem;">
+                        <a href="/login" class="btn btn-outline btn-small">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                        <a href="/register" class="btn btn-primary btn-small">
+                            <i class="fas fa-user-plus"></i> Register
+                        </a>
+                    </div>
+                `;
+            }
+        }
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCurrentUser();
+            await loadArtistProfile();
+        });
+    </script>
+</body>
+</html>

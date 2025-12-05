@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Chat - SoundConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (!token || !userData) {
+            window.location.href = '/login';
+            throw new Error('Not authenticated');
+        }
+    </script>
+    
+    <nav class="navbar">
+        <a href="/" class="logo">
+            <i class="fas fa-music"></i>
+            <span>SoundConnect</span>
+        </a>
+        
+        <div class="nav-links">
+            <a href="/explore"><i class="fas fa-compass"></i> Explore</a>
+            <a href="/follow"><i class="fas fa-user-plus"></i> Connect</a>
+        <a href="/chat" class="active"><i class="fas fa-comments"></i> Chat</a>
+            <a href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+        </div>
+        
+        <div class="auth-buttons">
+            <button class="btn btn-primary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <div class="container" style="display: flex; gap: 2rem; height: calc(100vh - 180px);">
+        <!-- Sidebar - Chat List -->
+        <div style="width: 300px; background: var(--dark-light); border-radius: 15px; padding: 1.5rem; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2>Messages</h2>
+                <button class="btn btn-primary btn-small" onclick="newChat()">
+                    <i class="fas fa-plus"></i> New
+                </button>
+            </div>
+            
+            <!-- Search -->
+            <div style="margin-bottom: 1.5rem;">
+                <input type="text" id="chatSearch" class="form-control" 
+                       placeholder="Search conversations...">
+            </div>
+            
+            <!-- Chat List -->
+            <div id="chatList">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading conversations...</p>
+                </div>
+            </div>
+            
+            <!-- Online Users -->
+            <div style="margin-top: 2rem;">
+                <h3 style="margin-bottom: 1rem;">Online Now</h3>
+                <div id="onlineUsers" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Chat Area -->
+        <div id="mainChatArea" style="flex: 1; display: flex; flex-direction: column; background: var(--dark-light); border-radius: 15px; overflow: hidden;">
+            <!-- Chat Header -->
+            <div style="padding: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <img id="chatPartnerAvatar" 
+                             src="https://via.placeholder.com/50/8a2be2/ffffff?text=?" 
+                             alt="User" style="width: 50px; height: 50px; border-radius: 50%;">
+                        <div>
+                            <h3 id="chatPartnerName">Select a conversation</h3>
+                            <small id="chatPartnerStatus" style="color: var(--gray);">
+                                Click on a user to start chatting
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-outline btn-small" onclick="voiceCall()">
+                            <i class="fas fa-phone"></i>
+                        </button>
+                        <button class="btn btn-outline btn-small" onclick="videoCall()">
+                            <i class="fas fa-video"></i>
+                        </button>
+                        <button class="btn btn-outline btn-small" onclick="chatInfo()">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div id="chatMessages" style="flex: 1; padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; justify-content: center; align-items: center;">
+                <div style="text-align: center; color: var(--gray);">
+                    <i class="fas fa-comments" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <h3>Welcome to Chat</h3>
+                    <p>Select a conversation from the list to start messaging</p>
+                    <p style="margin-top: 1rem; font-size: 0.9rem;">
+                        <i class="fas fa-info-circle"></i> Click on any online user to chat with them
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Chat Input -->
+            <div style="padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div style="display: flex; gap: 1rem;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-outline btn-small" onclick="attachFile()">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="btn btn-outline btn-small" onclick="attachAudio()">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="btn btn-outline btn-small" onclick="attachImage()">
+                            <i class="fas fa-image"></i>
+                        </button>
+                    </div>
+                    
+                    <input type="text" id="messageInput" class="form-control" 
+                           placeholder="Select a conversation to chat..." disabled>
+                    
+                    <button class="btn btn-primary" onclick="sendMessage()" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Chat Popup for Online Users -->
+    <div id="popupChat" style="display: none; position: fixed; bottom: 20px; right: 20px; width: 350px; height: 500px; background: var(--dark-light); border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000; overflow: hidden; flex-direction: column;">
+        <!-- Popup Chat Header -->
+        <div style="padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <img id="popupChatAvatar" 
+                     src="https://via.placeholder.com/40/8a2be2/ffffff?text=?" 
+                     alt="User" style="width: 40px; height: 40px; border-radius: 50%;">
+                <div>
+                    <h4 id="popupChatName" style="margin: 0;">User</h4>
+                    <small id="popupChatStatus" style="color: var(--success);">
+                        <i class="fas fa-circle" style="font-size: 0.6rem;"></i> Online
+                    </small>
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-outline btn-small" onclick="minimizePopup()">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <button class="btn btn-outline btn-small" onclick="closePopup()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Popup Chat Messages -->
+        <div id="popupChatMessages" style="flex: 1; padding: 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.8rem;">
+            <!-- Messages will appear here -->
+        </div>
+        
+        <!-- Popup Chat Input -->
+        <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="popupMessageInput" class="form-control" 
+                       placeholder="Type a message..." style="font-size: 0.9rem;">
+                <button class="btn btn-primary" onclick="sendPopupMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minimized Chat Tabs -->
+    <div id="minimizedChats" style="position: fixed; bottom: 20px; right: 20px; display: flex; gap: 0.5rem; flex-direction: column-reverse; align-items: flex-end; z-index: 999;">
+        <!-- Minimized chat tabs will appear here -->
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentUser = null;
+        let currentReceiver = null;
+        let currentChatRoom = null;
+        let activePopupUser = null;
+        let minimizedChats = [];
+        
+        function showNotification(message, type = 'info') {
+            alert(`${type}: ${message}`);
+        }
+        
+        function requireAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+        
+        // NEW: Start instant chat with online user
+        function startInstantChat(userId, userName, userAvatar, userStatus = 'online') {
+            console.log('Starting instant chat with user:', userId, userName);
+            
+            // Store active user
+            activePopupUser = {
+                id: userId,
+                name: userName,
+                avatar: userAvatar,
+                status: userStatus
+            };
+            
+            // Show popup chat
+            const popupChat = document.getElementById('popupChat');
+            const popupChatName = document.getElementById('popupChatName');
+            const popupChatAvatar = document.getElementById('popupChatAvatar');
+            const popupChatStatus = document.getElementById('popupChatStatus');
+            
+            popupChatName.textContent = userName;
+            popupChatAvatar.src = userAvatar || `https://via.placeholder.com/40/8a2be2/ffffff?text=${userName.charAt(0)}`;
+            popupChatStatus.innerHTML = `<i class="fas fa-circle" style="font-size: 0.6rem;"></i> ${userStatus === 'online' ? 'Online' : 'Offline'}`;
+            popupChatStatus.style.color = userStatus === 'online' ? 'var(--success)' : 'var(--gray)';
+            
+            // Show popup
+            popupChat.style.display = 'flex';
+            
+            // Load messages for this user
+            loadPopupMessages(userId);
+            
+            // Focus on input
+            setTimeout(() => {
+                document.getElementById('popupMessageInput').focus();
+            }, 100);
+            
+            // Remove from minimized chats if exists
+            removeFromMinimized(userId);
+        }
+        
+        // Load messages for popup
+        async function loadPopupMessages(userId) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/chat/messages/${userId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderPopupMessages(result.messages);
+                } else {
+                    throw new Error(result.error);
+                }
+                
+            } catch (error) {
+                console.error('Failed to load popup messages:', error);
+                showNotification('Failed to load messages', 'error');
+            }
+        }
+        
+        // Render popup messages
+        function renderPopupMessages(messages) {
+            const popupChatMessages = document.getElementById('popupChatMessages');
+            popupChatMessages.innerHTML = '';
+            
+            if (!messages || messages.length === 0) {
+                popupChatMessages.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--gray);">
+                        <i class="fas fa-comments" style="font-size: 1.5rem; margin-bottom: 0.5rem;"></i>
+                        <p style="font-size: 0.9rem;">No messages yet</p>
+                        <p style="font-size: 0.8rem; margin-top: 0.5rem;">Start the conversation!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            messages.forEach(message => {
+                addMessageToPopup(message);
+            });
+            
+            scrollPopupToBottom();
+        }
+        
+        // Add message to popup
+        function addMessageToPopup(message) {
+            const popupChatMessages = document.getElementById('popupChatMessages');
+            
+            // Remove "no messages" placeholder if present
+            const placeholder = popupChatMessages.querySelector('div[style*="text-align: center"]');
+            if (placeholder && placeholder.textContent.includes('No messages yet')) {
+                placeholder.remove();
+            }
+            
+            const isOwn = message.sender_id === currentUser.id;
+            const time = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.style.display = 'flex';
+            messageDiv.style.gap = '0.5rem';
+            messageDiv.style.maxWidth = '100%';
+            messageDiv.style.alignSelf = isOwn ? 'flex-end' : 'flex-start';
+            if (isOwn) messageDiv.style.flexDirection = 'row-reverse';
+            
+            let messageContent = '';
+            
+            if (message.message_type === 'text') {
+                messageContent = message.content;
+            } else if (message.message_type === 'image') {
+                messageContent = `
+                    <img src="${message.file_url || message.content}" 
+                         alt="Image" 
+                         style="max-width: 200px; border-radius: 10px; cursor: pointer;"
+                         onclick="openImage('${message.file_url || message.content}')">
+                `;
+            } else if (message.message_type === 'audio') {
+                messageContent = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                        <i class="fas fa-file-audio" style="font-size: 1.2rem; color: var(--primary);"></i>
+                        <div style="font-size: 0.8rem;">Audio Message</div>
+                        <audio controls style="margin-top: 0.3rem; height: 30px;">
+                            <source src="${message.file_url || '#'}" type="audio/mpeg">
+                        </audio>
+                    </div>
+                `;
+            } else if (message.message_type === 'file') {
+                messageContent = `
+                    <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.05); padding: 0.5rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);">
+                        <i class="fas fa-file" style="font-size: 1.2rem; color: var(--primary);"></i>
+                        <div style="font-size: 0.8rem;">${message.content}</div>
+                    </div>
+                `;
+            }
+            
+            messageDiv.innerHTML = `
+                ${!isOwn ? `
+                    <div>
+                        <img src="${activePopupUser?.avatar || 'https://via.placeholder.com/30/8a2be2/ffffff?text=U'}" 
+                             alt="User" 
+                             style="width: 30px; height: 30px; border-radius: 50%;">
+                    </div>
+                ` : ''}
+                
+                <div style="display: flex; flex-direction: column; align-items: ${isOwn ? 'flex-end' : 'flex-start'}; max-width: 80%;">
+                    <div style="background: ${isOwn ? 'rgba(29, 185, 84, 0.2)' : 'rgba(138, 43, 226, 0.2)'}; padding: 0.5rem 0.8rem; border-radius: 12px; line-height: 1.3; font-size: 0.9rem; border-bottom-${isOwn ? 'right' : 'left'}-radius: 5px;">
+                        ${messageContent}
+                    </div>
+                    <div style="font-size: 0.7rem; color: var(--gray); margin-top: 0.2rem; padding: 0 0.3rem;">
+                        ${time}
+                        ${isOwn ? (message.is_read ? ' ✓✓' : ' ✓') : ''}
+                    </div>
+                </div>
+                
+                ${isOwn ? `
+                    <div>
+                        <img src="${currentUser.profile_pic || 'https://via.placeholder.com/30/1db954/ffffff?text=ME'}" 
+                             alt="You" 
+                             style="width: 30px; height: 30px; border-radius: 50%;">
+                    </div>
+                ` : ''}
+            `;
+            
+            popupChatMessages.appendChild(messageDiv);
+            scrollPopupToBottom();
+        }
+        
+        // Send message in popup
+        async function sendPopupMessage() {
+            const messageInput = document.getElementById('popupMessageInput');
+            const content = messageInput.value.trim();
+            
+            if (!content || !activePopupUser) {
+                return;
+            }
+            
+            if (!requireAuth()) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/chat/send`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        receiver_id: activePopupUser.id,
+                        content: content,
+                        message_type: 'text'
+                    })
+                });
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Add message to popup
+                    const message = result.message;
+                    addMessageToPopup(message);
+                    
+                    // Clear input
+                    messageInput.value = '';
+                    
+                    // Reload conversations
+                    loadConversations();
+                } else {
+                    throw new Error(result.error);
+                }
+                
+            } catch (error) {
+                console.error('Failed to send popup message:', error);
+                showNotification('Failed to send message', 'error');
+            }
+        }
+        
+        // Popup controls
+        function minimizePopup() {
+            if (!activePopupUser) return;
+            
+            // Add to minimized chats
+            addToMinimized(activePopupUser);
+            
+            // Hide popup
+            document.getElementById('popupChat').style.display = 'none';
+            activePopupUser = null;
+        }
+        
+        function closePopup() {
+            document.getElementById('popupChat').style.display = 'none';
+            activePopupUser = null;
+        }
+        
+        function restorePopup(userId) {
+            // Find user in minimized chats
+            const chat = minimizedChats.find(c => c.id === userId);
+            if (chat) {
+                startInstantChat(chat.id, chat.name, chat.avatar, chat.status);
+                removeFromMinimized(userId);
+            }
+        }
+        
+        // Minimized chats management
+        function addToMinimized(user) {
+            // Check if already minimized
+            if (!minimizedChats.find(c => c.id === user.id)) {
+                minimizedChats.push(user);
+                updateMinimizedChatsUI();
+            }
+        }
+        
+        function removeFromMinimized(userId) {
+            minimizedChats = minimizedChats.filter(c => c.id !== userId);
+            updateMinimizedChatsUI();
+        }
+        
+        function updateMinimizedChatsUI() {
+            const minimizedChatsContainer = document.getElementById('minimizedChats');
+            minimizedChatsContainer.innerHTML = '';
+            
+            minimizedChats.forEach(chat => {
+                const tab = document.createElement('div');
+                tab.style.background = 'var(--dark-light)';
+                tab.style.padding = '0.5rem 1rem';
+                tab.style.borderRadius = '10px 10px 0 0';
+                tab.style.cursor = 'pointer';
+                tab.style.display = 'flex';
+                tab.style.alignItems = 'center';
+                tab.style.gap = '0.5rem';
+                tab.style.borderBottom = '2px solid var(--primary)';
+                tab.style.maxWidth = '150px';
+                tab.title = `Chat with ${chat.name}`;
+                
+                tab.innerHTML = `
+                    <img src="${chat.avatar || 'https://via.placeholder.com/20/8a2be2/ffffff?text=' + chat.name.charAt(0)}" 
+                         alt="${chat.name}" 
+                         style="width: 20px; height: 20px; border-radius: 50%;">
+                    <span style="font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${chat.name}</span>
+                    <button onclick="event.stopPropagation(); removeFromMinimized(${chat.id})" 
+                            style="background: none; border: none; color: var(--gray); font-size: 0.8rem; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                tab.onclick = () => restorePopup(chat.id);
+                minimizedChatsContainer.appendChild(tab);
+            });
+        }
+        
+        // Helper functions
+        function scrollPopupToBottom() {
+            const popupChatMessages = document.getElementById('popupChatMessages');
+            popupChatMessages.scrollTop = popupChatMessages.scrollHeight;
+        }
+        
+        function openImage(url) {
+            window.open(url, '_blank');
+        }
+        
+        async function initChat() {
+            if (!requireAuth()) return;
+            
+            try {
+                currentUser = JSON.parse(localStorage.getItem('user'));
+                
+                await Promise.all([
+                    loadConversations(),
+                    loadOnlineUsers()
+                ]);
+                
+            } catch (error) {
+                console.error('Error initializing chat:', error);
+                showNotification('Failed to load chat', 'error');
+            }
+        }
+        
+        async function loadConversations() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/chat/conversations`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderConversations(result.conversations);
+                } else {
+                    throw new Error(result.error);
+                }
+                
+            } catch (error) {
+                console.error('Failed to load conversations:', error);
+                document.getElementById('chatList').innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--gray);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>Failed to load conversations</p>
+                        <button class="btn btn-primary" onclick="loadConversations()" style="margin-top: 1rem;">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderConversations(conversations) {
+            const chatList = document.getElementById('chatList');
+            
+            if (!conversations || conversations.length === 0) {
+                chatList.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--gray);">
+                        <i class="fas fa-comments" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>No conversations yet</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Start a conversation with other users!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            chatList.innerHTML = '';
+            
+            conversations.forEach(conversation => {
+                const user = conversation.user;
+                const lastMessage = conversation.last_message;
+                const unreadCount = conversation.unread_count || 0;
+                
+                const chatItem = document.createElement('div');
+                chatItem.className = 'chat-item';
+                chatItem.style.padding = '1rem';
+                chatItem.style.borderRadius = '10px';
+                chatItem.style.cursor = 'pointer';
+                chatItem.style.transition = 'background 0.3s';
+                chatItem.style.marginBottom = '0.5rem';
+                chatItem.onmouseover = () => chatItem.style.background = 'rgba(255,255,255,0.05)';
+                chatItem.onmouseout = () => chatItem.style.background = '';
+                
+                chatItem.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="position: relative;">
+                            <img src="${user.profile_pic || 'https://via.placeholder.com/50/8a2be2/ffffff?text=' + user.username.charAt(0)}" 
+                                 alt="${user.display_name}" 
+                                 style="width: 50px; height: 50px; border-radius: 50%;">
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>${user.display_name || user.username}</strong>
+                                ${unreadCount > 0 ? `
+                                    <span style="background: var(--primary); color: white; font-size: 0.7rem; 
+                                                padding: 2px 6px; border-radius: 10px;">${unreadCount}</span>
+                                ` : ''}
+                            </div>
+                            <p style="color: var(--gray); font-size: 0.9rem; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${lastMessage ? (lastMessage.sender_id === currentUser.id ? 'You: ' : '') + lastMessage.content : 'Start a conversation...'}
+                            </p>
+                        </div>
+                    </div>
+                `;
+                
+                chatItem.addEventListener('click', () => selectConversation(user, conversation.room_id));
+                chatList.appendChild(chatItem);
+            });
+        }
+        
+        async function loadOnlineUsers() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/chat/users`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderOnlineUsers(result.users);
+                }
+                
+            } catch (error) {
+                console.error('Failed to load users:', error);
+            }
+        }
+        
+        function renderOnlineUsers(users) {
+            const onlineUsersContainer = document.getElementById('onlineUsers');
+            if (!users || users.length === 0) {
+                onlineUsersContainer.innerHTML = `
+                    <div style="color: var(--gray);">
+                        <p>No users online</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const otherUsers = users.filter(user => user.id !== currentUser.id);
+            
+            if (otherUsers.length === 0) {
+                onlineUsersContainer.innerHTML = `
+                    <div style="color: var(--gray);">
+                        <p>No other users online</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const usersHtml = otherUsers.map(user => `
+                <div style="position: relative;" title="${user.display_name || user.username}">
+                    <img src="${user.profile_pic || 'https://via.placeholder.com/40/8a2be2/ffffff?text=' + user.username.charAt(0)}" 
+                         alt="${user.display_name}" 
+                         style="width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 2px solid var(--success);"
+                         onclick="startInstantChat(${user.id}, '${user.display_name || user.username}', '${user.profile_pic || ''}', 'online')">
+                    <div style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; 
+                                background: var(--success); border-radius: 50%; border: 2px solid var(--dark-light);"></div>
+                </div>
+            `).join('');
+            
+            onlineUsersContainer.innerHTML = usersHtml;
+        }
+        
+        // Existing functions (keep these for main chat area)
+        function selectConversation(user, roomId) {
+            currentReceiver = user;
+            currentChatRoom = roomId;
+            
+            document.getElementById('chatPartnerName').textContent = user.display_name || user.username;
+            document.getElementById('chatPartnerAvatar').src = 
+                user.profile_pic || `https://via.placeholder.com/50/8a2be2/ffffff?text=${user.username.charAt(0)}`;
+            document.getElementById('chatPartnerStatus').innerHTML = `<i class="fas fa-circle" style="color: var(--success);"></i> Online`;
+            
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('messageInput').placeholder = `Message ${user.display_name || user.username}...`;
+            document.querySelector('button[onclick="sendMessage()"]').disabled = false;
+            
+            loadMessages(user.id);
+        }
+        
+        async function loadMessages(receiverId) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/chat/messages/${receiverId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    renderMessages(result.messages);
+                } else {
+                    throw new Error(result.error);
+                }
+                
+            } catch (error) {
+                console.error('Failed to load messages:', error);
+                showNotification('Failed to load messages', 'error');
+            }
+        }
+        
+        // ... rest of your existing functions (sendMessage, newChat, etc.) ...
+        
+        // Handle popup message input enter key
+        document.getElementById('popupMessageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendPopupMessage();
+            }
+        });
+        
+        document.addEventListener('DOMContentLoaded', initChat);
+    </script>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SoundConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="logo">
+            <i class="fas fa-music"></i>
+            <span>SoundConnect</span>
+        </a>
+        
+        <div class="nav-links">
+            <!-- Home section removed -->
+            <a href="/explore"><i class="fas fa-compass"></i> Explore</a>
+            <a href="/follow"><i class="fas fa-user-plus"></i> Connect</a>
+        <a href="/upload"><i class="fas fa-upload"></i> Upload</a>
+            <a href="/chat"><i class="fas fa-comments"></i> Chat</a>
+            <a href="/dashboard" class="active"><i class="fas fa-chart-line"></i> Dashboard</a>
+        </div>
+        
+        <div class="auth-buttons">
+            <a href="/profile" class="btn btn-outline" id="profileBtn">
+                <i class="fas fa-user"></i> <span class="btn-text">Profile</span>
+                <div class="btn-loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+            </a>
+            <button class="btn btn-primary" onclick="logout()" id="logoutBtn">
+                <i class="fas fa-sign-out-alt"></i> <span class="btn-text">Logout</span>
+                <div class="btn-loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+            </button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Dashboard</h1>
+            <button class="btn btn-outline" onclick="loadDashboard()" id="refreshBtn">
+                <i class="fas fa-redo"></i> <span class="btn-text">Refresh</span>
+                <div class="btn-loading" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+            </button>
+        </div>
+        
+        <div id="dashboardContent">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading dashboard...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Strict authentication check
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        
+        if (!token || !user) {
+            window.location.href = '/login';
+            throw new Error('Not authenticated');
+        }
+        
+        // Parse user data
+        let currentUser;
+        try {
+            currentUser = JSON.parse(user);
+        } catch {
+            // Invalid user data, logout
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+            throw new Error('Invalid user data');
+        }
+        
+        // API Base URL
+        const API_BASE = window.location.origin;
+        
+        // Utility functions
+        function showNotification(message, type = 'info') {
+            alert(`${type}: ${message}`);
+        }
+        
+        function setButtonLoading(button, isLoading) {
+            if (!button) return;
+            
+            if (isLoading) {
+                button.classList.add('loading');
+                button.disabled = true;
+                button.querySelector('.btn-text').style.display = 'none';
+                button.querySelector('.btn-loading').style.display = 'inline-block';
+            } else {
+                button.classList.remove('loading');
+                button.disabled = false;
+                button.querySelector('.btn-text').style.display = 'inline';
+                button.querySelector('.btn-loading').style.display = 'none';
+            }
+        }
+        
+        function requireAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+        
+        function logout() {
+            const logoutBtn = document.getElementById('logoutBtn');
+            setButtonLoading(logoutBtn, true);
+            
+            setTimeout(() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+            }, 1000);
+        }
+        
+        async function loadDashboard() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            setButtonLoading(refreshBtn, true);
+            
+            try {
+                const token = localStorage.getItem('token');
+                
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                console.log('👤 Loading dashboard for user');
+                
+                // Show loading state
+                document.getElementById('dashboardContent').innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading dashboard data...</p>
+                    </div>
+                `;
+                
+                // Load stats with loading
+                const statsResponse = await fetch(`${API_BASE}/api/dashboard/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (statsResponse.status === 401) {
+                    // Unauthorized - clear storage and redirect
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login';
+                    return;
+                }
+                
+                if (!statsResponse.ok) {
+                    throw new Error(`Stats: ${statsResponse.status}`);
+                }
+                
+                const stats = await statsResponse.json();
+                console.log('📊 Stats loaded:', stats);
+                
+                // Load tracks with loading
+                const tracksResponse = await fetch(`${API_BASE}/api/user/tracks`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!tracksResponse.ok) {
+                    throw new Error(`Tracks: ${tracksResponse.status}`);
+                }
+                
+                const tracks = await tracksResponse.json();
+                console.log('🎵 Tracks loaded:', tracks?.length || 0);
+                
+                // Load activity with loading
+                const activityResponse = await fetch(`${API_BASE}/api/dashboard/activity`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const activities = activityResponse.ok ? await activityResponse.json() : [];
+                console.log('📈 Activity loaded:', activities?.length || 0);
+                
+                // Render dashboard
+                renderDashboard(stats, tracks, activities);
+                
+            } catch (error) {
+                console.error('❌ Dashboard load error:', error);
+                document.getElementById('dashboardContent').innerHTML = `
+                    <div class="card" style="text-align: center; padding: 3rem;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: var(--warning);"></i>
+                        <h3 style="margin-top: 1rem;">Failed to load dashboard</h3>
+                        <p style="color: var(--gray);">${error.message}</p>
+                        <button class="btn btn-primary" onclick="loadDashboard()" style="margin-top: 1rem;">
+                            <i class="fas fa-redo"></i> Try Again
+                        </button>
+                    </div>
+                `;
+            } finally {
+                setButtonLoading(refreshBtn, false);
+            }
+        }
+        
+        function renderDashboard(stats, tracks, activities) {
+            const content = document.getElementById('dashboardContent');
+            
+            let html = `
+                <div class="grid" style="margin-bottom: 2rem;">
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="font-size: 2rem; color: var(--primary);">
+                                <i class="fas fa-headphones"></i>
+                            </div>
+                            <div>
+                                <h3>${stats.total_plays || 0}</h3>
+                                <p style="color: var(--gray);">Total Plays</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="font-size: 2rem; color: var(--secondary);">
+                                <i class="fas fa-heart"></i>
+                            </div>
+                            <div>
+                                <h3>${stats.total_likes || 0}</h3>
+                                <p style="color: var(--gray);">Total Likes</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="font-size: 2rem; color: var(--warning);">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div>
+                                <h3>${stats.followers_count || 0}</h3>
+                                <p style="color: var(--gray);">Followers</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="font-size: 2rem; color: var(--success);">
+                                <i class="fas fa-music"></i>
+                            </div>
+                            <div>
+                                <h3>${stats.tracks_count || 0}</h3>
+                                <p style="color: var(--gray);">Your Tracks</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Tracks section
+            if (tracks && tracks.length > 0) {
+                html += `
+                    <div style="margin-top: 2rem;">
+                        <h2>Your Tracks (${tracks.length})</h2>
+                        <div class="grid">
+                `;
+                
+                tracks.slice(0, 4).forEach(track => {
+                    html += `
+                        <div class="card track-card" onclick="viewTrack('${track.id}')" style="cursor: pointer;">
+                            <h4>${track.title}</h4>
+                            <p style="color: var(--gray); font-size: 0.9rem;">${track.description || 'No description'}</p>
+                            <div style="display: flex; gap: 1rem; margin-top: 1rem; color: var(--gray);">
+                                <span><i class="fas fa-play"></i> ${track.plays || 0}</span>
+                                <span><i class="fas fa-heart"></i> ${track.likes_count || 0}</span>
+                                <span><i class="fas fa-comment"></i> ${track.comments_count || 0}</span>
+                            </div>
+                            <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                                <button class="btn btn-outline btn-small" onclick="playTrack('${track.id}', event)">
+                                    <i class="fas fa-play"></i> Play
+                                </button>
+                                <button class="btn btn-outline btn-small" onclick="editTrack('${track.id}', event)">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if (tracks.length > 4) {
+                    html += `
+                        <div class="card" style="display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="viewAllTracks()">
+                            <div style="text-align: center;">
+                                <i class="fas fa-ellipsis-h" style="font-size: 2rem; color: var(--gray);"></i>
+                                <p style="color: var(--gray); margin-top: 0.5rem;">View all ${tracks.length} tracks</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += `</div></div>`;
+            } else {
+                html += `
+                    <div class="card" style="text-align: center; padding: 2rem; margin-top: 2rem;">
+                        <i class="fas fa-upload" style="font-size: 2rem; color: var(--gray);"></i>
+                        <h3 style="margin-top: 1rem;">No tracks yet</h3>
+                        <p style="color: var(--gray);">Upload your first track to get started!</p>
+                        <a href="/upload" class="btn btn-primary" style="margin-top: 1rem;" id="uploadBtn">
+                            <i class="fas fa-plus"></i> <span class="btn-text">Upload Track</span>
+                            <div class="btn-loading" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </div>
+                        </a>
+                    </div>
+                `;
+            }
+            
+            // Activity section
+            html += `
+                <div style="margin-top: 2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2>Recent Activity</h2>
+                        <button class="btn btn-outline btn-small" onclick="loadMoreActivity()" id="loadMoreBtn">
+                            <i class="fas fa-sync"></i> <span class="btn-text">Load More</span>
+                            <div class="btn-loading" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="card" id="activityList">
+            `;
+            
+            if (activities && activities.length > 0) {
+                activities.slice(0, 5).forEach(activity => {
+                    html += `
+                        <div class="activity-item" style="padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <p style="margin: 0;">
+                                <strong>${activity.user?.display_name || 'User'}</strong>
+                                ${activity.message}
+                            </p>
+                            <div style="color: var(--gray); font-size: 0.8rem; margin-top: 0.2rem;">
+                                ${activity.time_ago || 'Recently'}
+                            </div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += `
+                    <div style="text-align: center; padding: 2rem; color: var(--gray);">
+                        <i class="fas fa-bell-slash"></i>
+                        <p style="margin-top: 0.5rem;">No recent activity</p>
+                    </div>
+                `;
+            }
+            
+            html += `</div></div>`;
+            
+            content.innerHTML = html;
+            
+            // Add loading to upload button
+            const uploadBtn = document.getElementById('uploadBtn');
+            if (uploadBtn) {
+                uploadBtn.addEventListener('click', function(e) {
+                    setButtonLoading(this, true);
+                    // Navigation will happen automatically
+                });
+            }
+        }
+        
+        // Track functions
+        function playTrack(trackId, event) {
+            if (event) event.stopPropagation();
+            
+            const button = event?.target?.closest('button');
+            if (button) {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                button.disabled = true;
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                    showNotification('Playing track...', 'info');
+                }, 1000);
+            }
+        }
+        
+        function editTrack(trackId, event) {
+            if (event) event.stopPropagation();
+            
+            const button = event?.target?.closest('button');
+            if (button) {
+                const originalHTML = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                button.disabled = true;
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                    window.location.href = `/edit-track/${trackId}`;
+                }, 500);
+            }
+        }
+        
+        function viewTrack(trackId) {
+            window.location.href = `/track/${trackId}`;
+        }
+        
+        function viewAllTracks() {
+            window.location.href = '/profile';
+        }
+        
+        async function loadMoreActivity() {
+            const loadMoreBtn = document.getElementById('loadMoreBtn');
+            const activityList = document.getElementById('activityList');
+            
+            if (!loadMoreBtn || !activityList) return;
+            
+            setButtonLoading(loadMoreBtn, true);
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/dashboard/activity?limit=10`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const activities = await response.json();
+                    
+                    // Add more activities to the list
+                    activities.forEach(activity => {
+                        const activityItem = document.createElement('div');
+                        activityItem.className = 'activity-item';
+                        activityItem.style.padding = '1rem';
+                        activityItem.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+                        activityItem.innerHTML = `
+                            <p style="margin: 0;">
+                                <strong>${activity.user?.display_name || 'User'}</strong>
+                                ${activity.message}
+                            </p>
+                            <div style="color: var(--gray); font-size: 0.8rem; margin-top: 0.2rem;">
+                                ${activity.time_ago || 'Recently'}
+                            </div>
+                        `;
+                        activityList.appendChild(activityItem);
+                    });
+                    
+                    showNotification('Loaded more activities', 'success');
+                }
+            } catch (error) {
+                console.error('Error loading more activity:', error);
+                showNotification('Failed to load more activities', 'error');
+            } finally {
+                setButtonLoading(loadMoreBtn, false);
+            }
+        }
+        
+        // Load dashboard on page load
+        document.addEventListener('DOMContentLoaded', loadDashboard);
+        
+        // Add loading to profile button
+        document.getElementById('profileBtn').addEventListener('click', function(e) {
+            setButtonLoading(this, true);
+            // Navigation will happen automatically
+        });
+    </script>
+</body>
+</html>

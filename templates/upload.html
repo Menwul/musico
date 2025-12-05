@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Track - SoundConnect</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Strict authentication check -->
+    <script>
+        const token = localStorage.getItem('token');
+        const userData = localStorage.getItem('user');
+        
+        if (!token || !userData) {
+            window.location.href = '/login';
+            throw new Error('Not authenticated');
+        }
+    </script>
+    
+    <nav class="navbar">
+        <a href="/" class="logo">
+            <i class="fas fa-music"></i>
+            <span>SoundConnect</span>
+        </a>
+        
+        <div class="nav-links">
+            <a href="/"><i class="fas fa-home"></i> Home</a>
+            <a href="/explore"><i class="fas fa-compass"></i> Explore</a>
+            <a href="/follow"><i class="fas fa-user-plus"></i> Connect</a>
+        <a href="/upload" class="active"><i class="fas fa-upload"></i> Upload</a>
+            <a href="/dashboard"><i class="fas fa-chart-line"></i> Dashboard</a>
+            <a href="/profile"><i class="fas fa-user"></i> Profile</a>
+        </div>
+        
+        <div class="auth-buttons">
+            <button class="btn btn-primary" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 800px;">
+        <div class="card">
+            <h1 style="margin-bottom: 0.5rem;">Upload Your Track</h1>
+            <p style="color: var(--gray); margin-bottom: 2rem;">
+                Share your music with the world. Supported formats: MP3, WAV, OGG
+            </p>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <!-- Track Info -->
+                <div class="form-group">
+                    <label for="trackTitle">
+                        <i class="fas fa-heading"></i> Track Title *
+                    </label>
+                    <input type="text" id="trackTitle" class="form-control" 
+                           placeholder="Enter track title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="trackDescription">
+                        <i class="fas fa-align-left"></i> Description
+                    </label>
+                    <textarea id="trackDescription" class="form-control" 
+                              rows="3" placeholder="Tell us about your track..."></textarea>
+                </div>
+                
+                <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="trackGenre">
+                            <i class="fas fa-tag"></i> Genre *
+                        </label>
+                        <select id="trackGenre" class="form-control" required>
+                            <option value="">Select Genre</option>
+                            <option value="Hip Hop">Hip Hop</option>
+                            <option value="Rock">Rock</option>
+                            <option value="Electronic">Electronic</option>
+                            <option value="Pop">Pop</option>
+                            <option value="R&B">R&B</option>
+                            <option value="Jazz">Jazz</option>
+                            <option value="Classical">Classical</option>
+                            <option value="Reggae">Reggae</option>
+                            <option value="Country">Country</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="trackVisibility">
+                            <i class="fas fa-eye"></i> Visibility
+                        </label>
+                        <select id="trackVisibility" class="form-control">
+                            <option value="public">Public (Everyone can see)</option>
+                            <option value="private">Private (Only you can see)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- File Upload -->
+                <div class="form-group">
+                    <label for="audioFile">
+                        <i class="fas fa-file-audio"></i> Audio File *
+                    </label>
+                    <div style="border: 2px dashed rgba(255,255,255,0.2); padding: 2rem; text-align: center; border-radius: 10px;">
+                        <input type="file" id="audioFile" accept="audio/*" 
+                               style="display: none;" required>
+                        <div id="fileUploadArea" style="cursor: pointer;">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                            <h3>Click to upload audio file</h3>
+                            <p style="color: var(--gray); margin-top: 0.5rem;">
+                                MP3, WAV, or OGG • Max 50MB
+                            </p>
+                            <div id="fileName" style="margin-top: 1rem; color: var(--secondary);"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cover Art -->
+                <div class="form-group">
+                    <label for="coverArt">
+                        <i class="fas fa-image"></i> Cover Art (Optional)
+                    </label>
+                    <div style="border: 2px dashed rgba(255,255,255,0.2); padding: 2rem; text-align: center; border-radius: 10px;">
+                        <input type="file" id="coverArt" accept="image/*" style="display: none;">
+                        <div id="imageUploadArea" style="cursor: pointer;">
+                            <i class="fas fa-image" style="font-size: 3rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                            <h3>Upload cover image</h3>
+                            <p style="color: var(--gray); margin-top: 0.5rem;">
+                                JPG or PNG • Recommended: 1000x1000px
+                            </p>
+                            <div id="imagePreview" style="margin-top: 1rem;"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Audio Preview -->
+                <div class="form-group" id="audioPreviewContainer" style="display: none;">
+                    <label>
+                        <i class="fas fa-play-circle"></i> Audio Preview
+                    </label>
+                    <audio id="audioPreview" controls style="width: 100%; margin-top: 0.5rem;"></audio>
+                </div>
+                
+                <!-- Submit -->
+                <div style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem;">
+                        <i class="fas fa-upload"></i> Upload Track
+                    </button>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div id="uploadProgress" style="display: none; margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Uploading...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div style="height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+                        <div id="progressBar" style="height: 100%; background: var(--primary); width: 0%;"></div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Upload Guidelines -->
+        <div class="card" style="margin-top: 2rem;">
+            <h3 style="margin-bottom: 1rem;"><i class="fas fa-info-circle"></i> Upload Guidelines</h3>
+            <ul style="color: var(--gray); padding-left: 1.5rem;">
+                <li>Maximum file size: 50MB</li>
+                <li>Supported formats: MP3, WAV, OGG</li>
+                <li>Ensure you have rights to upload the content</li>
+                <li>No explicit content without proper labeling</li>
+                <li>High-quality audio recommended</li>
+                <li>Add accurate genre tags for better discovery</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL
+        const API_BASE = window.location.origin;
+        
+        // Utility functions
+        function showNotification(message, type = 'info') {
+            alert(`${type}: ${message}`);
+        }
+        
+        function requireAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return false;
+            }
+            return true;
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+        }
+        
+        // File upload handlers
+        document.getElementById('fileUploadArea').addEventListener('click', function() {
+            document.getElementById('audioFile').click();
+        });
+        
+        document.getElementById('imageUploadArea').addEventListener('click', function() {
+            document.getElementById('coverArt').click();
+        });
+        
+        // Audio file selection
+        document.getElementById('audioFile').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('fileName').innerHTML = `
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    ${file.name} (${formatFileSize(file.size)})
+                `;
+                
+                // Show audio preview
+                const audioPreview = document.getElementById('audioPreview');
+                audioPreview.src = URL.createObjectURL(file);
+                document.getElementById('audioPreviewContainer').style.display = 'block';
+            }
+        });
+        
+        // Cover image selection
+        document.getElementById('coverArt').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('imagePreview').innerHTML = `
+                        <img src="${e.target.result}" style="max-width: 200px; border-radius: 5px;">
+                    `;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Upload form submission
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!requireAuth()) return;
+            
+            const audioFile = document.getElementById('audioFile').files[0];
+            const coverArt = document.getElementById('coverArt').files[0];
+            
+            if (!audioFile) {
+                showNotification('Please select an audio file', 'error');
+                return;
+            }
+            
+            // Validate file size (50MB)
+            if (audioFile.size > 50 * 1024 * 1024) {
+                showNotification('File size exceeds 50MB limit', 'error');
+                return;
+            }
+            
+            // Validate file type
+            const validTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3'];
+            if (!validTypes.includes(audioFile.type) && !audioFile.name.toLowerCase().endsWith('.mp3') 
+                && !audioFile.name.toLowerCase().endsWith('.wav') && !audioFile.name.toLowerCase().endsWith('.ogg')) {
+                showNotification('Invalid file type. Please upload MP3, WAV, or OGG', 'error');
+                return;
+            }
+            
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            
+            // Show progress bar
+            document.getElementById('uploadProgress').style.display = 'block';
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('audio', audioFile);
+            formData.append('title', document.getElementById('trackTitle').value);
+            formData.append('description', document.getElementById('trackDescription').value);
+            formData.append('genre', document.getElementById('trackGenre').value);
+            
+            if (coverArt) {
+                formData.append('cover_art', coverArt);
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_BASE}/api/tracks/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showNotification('Track uploaded successfully!', 'success');
+                    
+                    // Reset form
+                    this.reset();
+                    document.getElementById('fileName').innerHTML = '';
+                    document.getElementById('imagePreview').innerHTML = '';
+                    document.getElementById('audioPreviewContainer').style.display = 'none';
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1500);
+                } else {
+                    showNotification(data.error || 'Upload failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Network error during upload', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+                document.getElementById('uploadProgress').style.display = 'none';
+            }
+        });
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Simulate progress bar (in real app, use XMLHttpRequest for progress events)
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = percent + '%';
+            document.getElementById('progressPercent').textContent = percent + '%';
+        }
+    </script>
+</body>
+</html>
